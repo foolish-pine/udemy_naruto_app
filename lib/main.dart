@@ -26,19 +26,48 @@ class MyHomePage extends StatefulWidget {
 
 class _MyHomePageState extends State<MyHomePage> {
   final _apiUrl = 'https://narutodb.xyz/api/character';
+  int _page = 1;
+  final _limit = 15;
   List<Character> _characters = [];
+  final ScrollController _scrollController = ScrollController();
+  bool _isLoading = false;
 
   @override
   void initState() {
     super.initState();
     _fetchCharacters();
+    _scrollController.addListener(() {
+      if (_scrollController.position.maxScrollExtent - 100 <
+          _scrollController.offset) {
+        _fetchCharacters();
+      }
+    });
+  }
+
+  @override
+  void dispose() {
+    super.dispose();
+    _scrollController.dispose();
   }
 
   Future<void> _fetchCharacters() async {
-    final response = await Dio().get(_apiUrl);
-    final List<dynamic> data = response.data['characters'];
+    if (_isLoading) return;
+
     setState(() {
-      _characters = data.map((data) => Character.fromJson(data)).toList();
+      _isLoading = true;
+    });
+
+    final response = await Dio()
+        .get(_apiUrl, queryParameters: {'page': _page, 'limit': _limit});
+    final List<dynamic> data = response.data['characters'];
+
+    setState(() {
+      _characters = [
+        ..._characters,
+        ...data.map((data) => Character.fromJson(data))
+      ];
+      _page++;
+      _isLoading = false;
     });
   }
 
@@ -53,6 +82,7 @@ class _MyHomePageState extends State<MyHomePage> {
         body: Padding(
           padding: const EdgeInsets.all(16),
           child: ListView.builder(
+            controller: _scrollController,
             itemCount: _characters.length,
             itemBuilder: (context, index) {
               final character = _characters[index];
