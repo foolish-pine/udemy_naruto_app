@@ -26,6 +26,7 @@ class MyHomePage extends StatefulWidget {
 
 class _MyHomePageState extends State<MyHomePage> {
   final _apiUrl = 'https://narutodb.xyz/api/character';
+  List<Character> _characters = [];
 
   @override
   void initState() {
@@ -36,8 +37,9 @@ class _MyHomePageState extends State<MyHomePage> {
   Future<void> _fetchCharacters() async {
     final response = await Dio().get(_apiUrl);
     final List<dynamic> data = response.data['characters'];
-    final characters = data.map((data) => Character.fromJson(data)).toList();
-    print(characters);
+    setState(() {
+      _characters = data.map((data) => Character.fromJson(data)).toList();
+    });
   }
 
   @override
@@ -51,27 +53,37 @@ class _MyHomePageState extends State<MyHomePage> {
         body: Padding(
           padding: const EdgeInsets.all(16),
           child: ListView.builder(
-            itemCount: 9,
+            itemCount: _characters.length,
             itemBuilder: (context, index) {
-              return const Card(
+              final character = _characters[index];
+
+              return Card(
                 child: Padding(
-                  padding: EdgeInsets.all(16.0),
+                  padding: const EdgeInsets.all(16.0),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Center(
-                        child: Image(
-                          image: AssetImage('assets/dummy.png'),
-                        ),
+                        child: character.images.isNotEmpty
+                            ? Image.network(
+                                character.images[0],
+                                fit: BoxFit.contain,
+                                errorBuilder: (context, error, stackTrace) {
+                                  return const Image(
+                                      image: AssetImage('assets/dummy.png'));
+                                },
+                              )
+                            : const Image(
+                                image: AssetImage('assets/dummy.png')),
                       ),
-                      Text('テストキャラクター',
-                          style: TextStyle(
+                      Text(character.name,
+                          style: const TextStyle(
                             fontWeight: FontWeight.bold,
                             fontSize: 16.0,
                           )),
                       Text(
-                        'なし',
-                        style: TextStyle(fontSize: 14.0),
+                        character.debut?['appearsIn'] ?? 'なし',
+                        style: const TextStyle(fontSize: 14.0),
                       ),
                     ],
                   ),
